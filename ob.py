@@ -1,11 +1,5 @@
 import sys
-
-plain = "userb1".encode("utf-16le")
-part0 = [0x28, 0x41, 0x85, 0x67]
-part1 = [0xC9, 0x50, 0x7B, 0x00]
-
-t0 = part0 + part1
-t1 = part1 + part0
+import re
 
 
 def print_hex(input):
@@ -44,7 +38,7 @@ def obfuscate(t0, t1, host1473, val1472, plain):
 
 def deobfuscate(host1473, val1472, cipher):
     round1 = deobfuscate_1471(val1472, host1473, cipher)
-    print_hex(round1)
+    # print_hex(round1)
     part0 = round1[0:4]
     part1 = round1[4:8]
     cipher1 = round1[8:]
@@ -54,10 +48,65 @@ def deobfuscate(host1473, val1472, cipher):
     return deobfuscate_1471(t0, t1, cipher1)
 
 
-ob = obfuscate(
-    t0, t1, "WIN-N6MF".encode("ascii"), [0x63, 0x45, 0, 0, 0, 0, 0x45, 0x63], plain
-)
+def test():
+    plain = "userb1".encode("utf-16le")
+    part0 = [0x28, 0x41, 0x85, 0x67]
+    part1 = [0xC9, 0x50, 0x7B, 0x00]
 
-deob = deobfuscate("WIN-N6MF".encode("ascii"), [0x63, 0x45, 0, 0, 0, 0, 0x45, 0x63], ob)
+    t0 = part0 + part1
+    t1 = part1 + part0
 
-print(bytes(deob).decode("utf-16le"))
+    ob = obfuscate(
+        t0, t1, "WIN-N6MF".encode("ascii"), [0x63, 0x45, 0, 0, 0, 0, 0x45, 0x63], plain
+    )
+
+    deob = deobfuscate(
+        "WIN-N6MF".encode("ascii"), [0x63, 0x45, 0, 0, 0, 0, 0x45, 0x63], ob
+    )
+
+    print(bytes(deob).decode("utf-16le"))
+
+
+def main():
+    # Dumb parsing of Registry export
+    fat_re = re.compile('"Function Admin Timestamp"=hex:[0-9a-f,\\\\ \n]*', re.DOTALL)
+    hostname = sys.argv[1]
+    reg_data = open(sys.argv[2], "r", encoding="utf-16le").read()
+    fat_line = fat_re.search(reg_data)
+    fat_hex = (
+        fat_line.group(0)
+        .split(":")[1]
+        .replace("\n", "")
+        .replace("\\", "")
+        .replace(" ", "")
+    )
+    fat_bytes = [int(b, 16) for b in fat_hex.split(",")]
+    # print_hex(fat_bytes)
+
+    # Brute-Force val1472
+    for b0 in range(0, 256):
+        for b1 in range(0, 256):
+            deob = deobfuscate(
+                hostname.encode("ascii"), [b0, b1, 0, 0, 0, 0, b1, b0], fat_bytes
+            )
+
+            # Heuristic: we look for typeable UTF-16LE
+            found = True
+            for i in range(1, 17, 2):
+                if deob[i] != 0:
+                    found = False
+                    break
+            if not found:
+                continue
+            for i in range(0, 16, 2):
+                if deob[i] < 0x1F or deob[i] > 0x7E:
+                    found = False
+                    break
+            if found:
+                print(
+                    "[+] Found candidate with key (%02X, %02X): %s"
+                    % (b0, b1, bytes(deob[0:16]).decode("utf-16le"))
+                )
+
+
+main()

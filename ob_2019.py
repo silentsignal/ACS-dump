@@ -47,6 +47,19 @@ def deobfuscate(host1473, val1472, cipher):
 
     return deobfuscate_1471(t0, t1, cipher1)
 
+def gen_obfuscator_key(build_guid, product_id):
+    ret=[0,0,0,0,0,0,0,0]
+    machine_id=list(build_guid.encode('utf-16le'))
+    machine_id.extend(list(product_id.encode('utf-16le')))
+    print("Machine ID [%d]:" % (len(machine_id)))
+    print_hex(machine_id)
+    idx=0
+    for i in range(0, len(machine_id), 2):
+        print(bytes(machine_id[i:]).decode("utf-16le"), i, hex(machine_id[i]))
+        print_hex(ret)
+        ret[idx] = ret[idx] ^ machine_id[i]
+        idx = (idx + 1) & 7
+    return ret
 
 def test():
     plain = "TrustNo1".encode("utf-16le")
@@ -58,7 +71,9 @@ def test():
     
     round0 = obfuscate_1470(t0, t1, plain)
     print_hex(round0)
-
+    
+    obkey=gen_obfuscator_key("ffffffff-ffff-ffff-ffff-ffffffffffff", "00431-10000-00000-AA321")
+    print_hex(obkey)
     """
     ob = obfuscate(
         t0, t1, "WIN-N6MF".encode("ascii"), [0x63, 0x45, 0, 0, 0, 0, 0x45, 0x63], plain

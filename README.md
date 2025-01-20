@@ -1,4 +1,4 @@
-# Access Client Services Password Dumper
+# IBM i Access Client Solutions Password Dumper
 
 See our blog post for details: https://blog.silentsignal.eu/2025/01/21/ibm-acs-password-dump/
 

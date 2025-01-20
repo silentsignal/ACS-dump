@@ -1,5 +1,7 @@
 # Access Client Services Password Dumper
 
+See our blog post for details: https://blog.silentsignal.eu/2025/01/21/ibm-acs-password-dump/
+
 ### ACS before CVE-2016-0287
 
 This one works by brute-forcing half of the round 2 key:
